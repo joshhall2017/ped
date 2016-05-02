@@ -1,15 +1,18 @@
 from datetime import datetime
-import csv
+import pandas as pd
 
-with open('ped.csv', 'r') as f:
 
-    rows = csv.reader(f)
 
-    headers = next(rows)
-    print(headers)
+def str_to_datetime(date_str):
+    """
+    Convert a string to a datetime objec
+    """
 
-    for row in rows:
-        name = row[0]
-        date = row[1]
-        date = datetime.strptime(date, '%d/%M/%Y')
-        print(name, date)
+    return datetime.strptime(date_str, '%d/%M/%Y')
+
+
+
+data = pd.read_csv('ped.csv') #pandas dataframe
+
+data['Date'] = data['Date'].apply(str_to_datetime)
+print(data)
