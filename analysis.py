@@ -4,7 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
 import pandas as pd
-
+import requests
+import json
 
 
 def str_to_datetime(date_str):
@@ -47,8 +48,22 @@ def get_city(text):
     if "White Sox" in text:
         team.pop()
     team = ' '.join(team)
-    print(team)
+    return team
 
+
+def get_lat_long(cityName):
+    """
+    Use the geonames api to grab the latitude and longitude from a cityName
+    """
+    url = 'http://api.geonames.org/searchJSON'
+    data = {'q': cityName, 'maxRows': 1, 'username': 'joshhall2017'}
+
+    res = requests.get(url, params=data)
+    data = json.loads(res.text)
+    lat = data['geonames'][0]['lat']
+    lng = data['geonames'][0]['lng']
+
+    return [lat, lng]
 
 def lin_reg(data):
     res = sm.OLS(data['penalty'],sm.add_constant(data['date_int'])).fit() #y-data first
@@ -73,23 +88,43 @@ data.to_csv('clean_data.csv',sep=',')
 #lin_reg(data)
 #plots(data)
 
+city_counts = {}
+for city in data['city']:
+    if city in city_counts:
+        city_counts[city] = city_counts[city] + 1
+    else:
+        city_counts[city] = 1
+    #print(city, get_lat_long(city))
+print(city_counts)
+
+city_coords = {}
+for city in city_counts:
+    city_coords[city] = get_lat_long(city)
+print(city_coords)
+
 
 themap = Basemap(projection='gall',
-              llcrnrlon = -15,              # lower-left corner longitude
-              llcrnrlat = 28,               # lower-left corner latitude
-              urcrnrlon = 45,               # upper-right corner longitude
-              urcrnrlat = 73,               # upper-right corner latitude
+              llcrnrlon = -180,              # lower-left corner longitude
+              llcrnrlat = 0,               # lower-left corner latitude
+              urcrnrlon = -10,               # upper-right corner longitude
+              urcrnrlat = 83,               # upper-right corner latitude
               resolution = 'l',
               area_thresh = 100000.0,
               )
-
 themap.drawcoastlines()
-themap.drawcountries()
-themap.fillcontinents(color = 'gainsboro')
+themap.fillcontinents(color = 'green')
 themap.drawmapboundary(fill_color='steelblue')
-themap.plot(5, 5,
-            'o',                    # marker shape
-            color='Indigo',         # marker colour
-            markersize=4            # marker size
-            )
+smallest = 100
+next_smallest = 100
+for city in city_counts:
+    lat, long = city_coords[city]
+    lat, long = float(lat), float(long)
+    if smallest > lat:
+        next_smallest = smallest
+        smallest = lat
+    x, y = themap(long, lat)
+    themap.plot(x, y, 'o', color='red', markersize=city_counts[city])
+print(smallest, next_smallest)
 plt.show()
+# 32.010325, -123.916128 # Bottom left
+# 47.415015, -66.869620  # Top right
